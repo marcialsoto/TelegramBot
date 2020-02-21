@@ -54,11 +54,11 @@ def emotion(update, context):
 def happen(update, context):
     user = update.message.from_user
 
-    if(update.message.text.upper().find("TRABAJO") > 0):
-        update.message.reply_text("Trabajar es malo")
+    # if(update.message.text.upper().find("TRABAJO") > 0):
+    #     update.message.reply_text("Trabajar es malo")
 
-    logger.info( update.message.text.find("trabajo") )
-    update.message.reply_text("Trabajar es malo")
+    logger.info( "TRABAJO" in update.message.text.upper() )
+    # update.message.reply_text("Trabajar es malo")
 
     return LOCATION
 
