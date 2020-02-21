@@ -14,7 +14,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
-EMOTION, HAPPEN, PHOTO, LOCATION, BIO = range(5)
+EMOTION, HAPPEN, DO, PHOTO, LOCATION, BIO = range(6)
 
 # happy = emoji.emojize("yummy :cake:", use_aliases=True)
 
@@ -53,14 +53,31 @@ def emotion(update, context):
 
 def happen(update, context):
     user = update.message.from_user
+    message = update.message.text.upper()
 
-    # if(update.message.text.upper().find("TRABAJO") > 0):
-    #     update.message.reply_text("Trabajar es malo")
+    if("TRABAJO", "CORRIERON" in message):
+        reply_keyboard = [['Descansar', 'Encontrar otro', 'No lo sé']]
 
-    logger.info( "TRABAJO" in update.message.text.upper() )
-    # update.message.reply_text("Trabajar es malo")
+        update.message.reply_text(
+            str(user.first_name) + ' eso está mal 😔'
+            'Pero vamos, hay muchas cosas que podemos hacer al respecto, cuéntame, ¿qué te gustaría hacer?',
+            reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
 
-    return LOCATION
+    return DO
+
+
+def do(update, context):
+    user = update.message.from_user
+    message = update.message.text.upper()
+    reply_keyboard = [['Viajar', 'Aprender', 'Conocer', 'Descubrir']]
+
+    if update.message.text == 'Descansar':
+        update.message.reply_text(
+            str(user.first_name) + ' me parece perfecto. Descansar luego de una experiencia así, es lo que se recomienda en estos casos.'
+            'Puedes tomarte el tiempo que te sea necesario antes de volver al ruedo. Te puedo recomendar las siguientes actividades:',
+            reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
+
+    return DO
 
 
 def photo(update, context):
@@ -127,7 +144,6 @@ def error(update, context):
 def unknown(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id, text="Disculpa, no entendí aquello.")
 
-
 def main():
     # Create the Updater and pass it your bot's token.
     # Make sure to set use_context=True to use the new context based callbacks
@@ -146,6 +162,9 @@ def main():
                     CommandHandler('start', start)],
 
             HAPPEN: [MessageHandler(Filters.text, happen),
+                    CommandHandler('start', start)],
+
+            DO: [MessageHandler(Filters.regex('^(Descansar|Encontrar otro|No lo sé)$'), do),
                     CommandHandler('start', start)],
 
             PHOTO: [MessageHandler(Filters.photo, photo),
