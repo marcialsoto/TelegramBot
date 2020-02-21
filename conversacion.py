@@ -1,4 +1,6 @@
 import logging
+import random
+import emoji
 
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
@@ -12,29 +14,53 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
-GENDER, PHOTO, LOCATION, BIO = range(4)
+EMOTION, HAPPEN, PHOTO, LOCATION, BIO = range(5)
+
+# happy = emoji.emojize("yummy :cake:", use_aliases=True)
 
 
 def start(update, context):
-    reply_keyboard = [['Boy', 'Girl', 'Other']]
+    user = str(update.message.from_user.first_name)
+    reply_keyboard = [['😁', '😔', '😭', '😡']]
 
     update.message.reply_text(
-        'Hi! My name is Professor Bot. I will hold a conversation with you. '
-        'Send /cancel to stop talking to me.\n\n'
-        'Are you a boy or a girl?',
+        '¡Hola ' + user + '!'
+        'Mi nombre es Felícita y voy a conversar contigo. '
+        'Cuéntame, ¿Cómo te sientes hoy?',
         reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
 
-    return GENDER
+    return EMOTION
 
 
-def gender(update, context):
+def emotion(update, context):
     user = update.message.from_user
-    logger.info("Gender of %s: %s", user.first_name, update.message.text)
-    update.message.reply_text('I see! Please send me a photo of yourself, '
-                              'so I know what you look like, or send /skip if you don\'t want to.',
-                              reply_markup=ReplyKeyboardRemove())
+    logger.info("Emotion of %s: %s", user.first_name, update.message.text)
+
+    if update.message.text == '😁':
+        videoList = ['https://www.youtube.com/watch?v=tmvDgUBoBSQ','https://www.youtube.com/watch?v=B6u4JNOo73k','https://www.youtube.com/watch?v=d5QeZ5INOWw']
+        
+        update.message.reply_text('La vida es hermosa, ' + str(user.first_name) + '😁. Puedes buscarme cuando estés triste otro día. Por mientras mira este video de gatitos: ' + random.choice(videoList))
+
+        return ConversationHandler.END
+
+    elif update.message.text == '😔':
+        update.message.reply_text('¿Qué pasó, ' + str(user.first_name) + '? Cuéntame un poco mas...')
+
+        return HAPPEN
 
     return PHOTO
+
+
+def happen(update, context):
+    user = update.message.from_user
+
+    if(update.message.text.upper().find("TRABAJO") > 0):
+        update.message.reply_text("Trabajar es malo")
+
+    logger.info( update.message.text.find("trabajo") )
+    update.message.reply_text("Trabajar es malo")
+
+    return LOCATION
 
 
 def photo(update, context):
@@ -98,6 +124,9 @@ def error(update, context):
     """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, context.error)
 
+def unknown(update, context):
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Disculpa, no entendí aquello.")
+
 
 def main():
     # Create the Updater and pass it your bot's token.
@@ -108,12 +137,15 @@ def main():
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
 
-    # Add conversation handler with the states GENDER, PHOTO, LOCATION and BIO
+    # Add conversation handler with the states EMOTION, PHOTO, LOCATION and BIO
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
 
         states={
-            GENDER: [MessageHandler(Filters.regex('^(Boy|Girl|Other)$'), gender),
+            EMOTION: [MessageHandler(Filters.regex('^(😁|😔|😭|😡)$'), emotion),
+                    CommandHandler('start', start)],
+
+            HAPPEN: [MessageHandler(Filters.text, happen),
                     CommandHandler('start', start)],
 
             PHOTO: [MessageHandler(Filters.photo, photo),
@@ -129,6 +161,11 @@ def main():
     )
 
     dp.add_handler(conv_handler)
+    # dp.add_handler(MessageHandler(Filters.text, pizza))
+
+
+    unknown_handler = MessageHandler(Filters.command, unknown)
+    dp.add_handler(unknown_handler)
 
     # log all errors
     dp.add_error_handler(error)
