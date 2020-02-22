@@ -1,6 +1,5 @@
 import logging
 import random
-import emoji
 
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
@@ -14,18 +13,14 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
-EMOTION, HAPPEN, DO, PHOTO, LOCATION, BIO = range(6)
-
-# happy = emoji.emojize("yummy :cake:", use_aliases=True)
-
+EMOTION, HAPPEN, DO, DOING, PHOTO, LOCATION, BIO = range(7)
 
 def start(update, context):
     user = str(update.message.from_user.first_name)
-    reply_keyboard = [['😁', '😔', '😭', '😡']]
+    reply_keyboard = [['😁', '😔', '😡']]
 
     update.message.reply_text(
-        '¡Hola ' + user + '!'
-        'Mi nombre es Felícita y voy a conversar contigo. '
+        '¡Hola ' + user + '! Mi nombre es Felícita y voy a conversar contigo. '
         'Cuéntame, ¿Cómo te sientes hoy?',
         reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
 
@@ -47,6 +42,11 @@ def emotion(update, context):
         update.message.reply_text('¿Qué pasó, ' + str(user.first_name) + '? Cuéntame un poco mas...')
 
         return HAPPEN
+    
+    elif update.message.text == '😡':
+        update.message.reply_text('¡Bájale un poco a las revoluciones, ' + str(user.first_name) + '! Cuéntame un poco más...')
+
+        return HAPPEN
 
     return PHOTO
 
@@ -55,16 +55,32 @@ def happen(update, context):
     user = update.message.from_user
     message = update.message.text.upper()
 
-    if("TRABAJO", "CORRIERON" in message):
+    if("TRABAJO" in message):
         reply_keyboard = [['Descansar', 'Encontrar otro', 'No lo sé']]
 
         update.message.reply_text(
             str(user.first_name) + ' eso está mal 😔'
             'Pero vamos, hay muchas cosas que podemos hacer al respecto, cuéntame, ¿qué te gustaría hacer?',
             reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
+    
+    elif("DISCUTÍ" in message):
+        update.message.reply_text('Peleamos desde tiempos inmemoriables, pero un mundo de paz solo se contruye con justicia. Dale tiempo y pelea por una reconciliación.')
+        return ConversationHandler.END
+    
+    elif("APARIENCIA" in message):
+        update.message.reply_text('Francamente lo dudo, pero envíame una foto para estar seguros')
+        return PHOTO
+    
+    elif("NADIE" in message):
+        update.message.reply_text('Eso no es cierto, mándame tu ubiación y estoy eontigo en un abrir y cerrar de ojos...')
+        return LOCATION
+    
+    else:
+        update.message.reply_text('Como dice Silvito el Libre, "lo que un día te quita el aliento, al otro no está ni en tu cabeza"')
+        return ConversationHandler.END
 
+    logger.info("DISCUTÍ" in message)
     return DO
-
 
 def do(update, context):
     user = update.message.from_user
@@ -73,22 +89,50 @@ def do(update, context):
 
     if update.message.text == 'Descansar':
         update.message.reply_text(
-            str(user.first_name) + ' me parece perfecto. Descansar luego de una experiencia así, es lo que se recomienda en estos casos.'
+            str(user.first_name) + ' me parece perfecto. Descansar luego de una experiencia así es lo que se recomienda en estos casos.'
             'Puedes tomarte el tiempo que te sea necesario antes de volver al ruedo. Te puedo recomendar las siguientes actividades:',
+            
             reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
+    
+    elif update.message.text == 'Encontrar otro':
+        update.message.reply_text( str(user.first_name) + ', entiendo. Quizá debamos empezar por actualizar tu LinkedIn https://pe.linkedin.com/')
+        
+        return ConversationHandler.END
+    
+    elif update.message.text == 'No lo sé':
+        update.message.reply_text( str(user.first_name) + ', entiendo por lo que estás pasando. Lo peor que puedes hacer es darlo muchas vueltas, ¿qué te parece si descansamos un poco? Escuchemos un poco de tu música favorita https://music.youtube.com/playlist?list=PLqtAv5lCZ8wVtCFK7oMpdp6sxGxx9Qi5O')
+        
+        return ConversationHandler.END
+            
+    
+    return DOING
 
-    return DO
+def doing(update, context):
+    user = update.message.from_user
+    message = update.message.text.upper()
+    
+    if update.message.text == 'Viajar':
+        update.message.reply_text('¡' + str(user.first_name) + ', excelente! ¿Qué te parece si revisamos las mejores ofertas en viajes al interior del país? https://www.despegar.com.pe/',
+                                reply_markup=ReplyKeyboardRemove())
+    
+    elif update.message.text == 'Aprender':
+        update.message.reply_text('¡' + str(user.first_name) + ', excelente! Revisemos estos cursos sobre tecnología https://www.udemy.com/courses/development/',
+                                reply_markup=ReplyKeyboardRemove())
+    
+    elif update.message.text == 'Descubrir':
+        update.message.reply_text('¡' + str(user.first_name) + ', excelente! Vemos estos estrenos https://www.cineplanet.com.pe/ ',
+                                reply_markup=ReplyKeyboardRemove())
 
+    return ConversationHandler.END
 
 def photo(update, context):
     user = update.message.from_user
     photo_file = update.message.photo[-1].get_file()
     photo_file.download('user_photo.jpg')
     logger.info("Photo of %s: %s", user.first_name, 'user_photo.jpg')
-    update.message.reply_text('Gorgeous! Now, send me your location please, '
-                              'or send /skip if you don\'t want to.')
+    update.message.reply_text('Pues para mí te ves genial. Debes limpiar tu espejo, que está opacando tu belleza.')
 
-    return LOCATION
+    return ConversationHandler.END
 
 
 def skip_photo(update, context):
@@ -105,10 +149,9 @@ def location(update, context):
     user_location = update.message.location
     logger.info("Location of %s: %f / %f", user.first_name, user_location.latitude,
                 user_location.longitude)
-    update.message.reply_text('Maybe I can visit you sometime! '
-                              'At last, tell me something about yourself.')
+    update.message.reply_text('Estoy yendo a verte...')
 
-    return BIO
+    return ConversationHandler.END
 
 
 def skip_location(update, context):
@@ -118,14 +161,6 @@ def skip_location(update, context):
                               'At last, tell me something about yourself.')
 
     return BIO
-
-
-def bio(update, context):
-    user = update.message.from_user
-    logger.info("Bio of %s: %s", user.first_name, update.message.text)
-    update.message.reply_text('Thank you! I hope we can talk again some day.')
-
-    return ConversationHandler.END
 
 
 def cancel(update, context):
@@ -158,7 +193,7 @@ def main():
         entry_points=[CommandHandler('start', start)],
 
         states={
-            EMOTION: [MessageHandler(Filters.regex('^(😁|😔|😭|😡)$'), emotion),
+            EMOTION: [MessageHandler(Filters.regex('^(😁|😔|😡)$'), emotion),
                     CommandHandler('start', start)],
 
             HAPPEN: [MessageHandler(Filters.text, happen),
@@ -166,14 +201,15 @@ def main():
 
             DO: [MessageHandler(Filters.regex('^(Descansar|Encontrar otro|No lo sé)$'), do),
                     CommandHandler('start', start)],
+            
+            DOING: [MessageHandler(Filters.text, doing),
+                    CommandHandler('start', start)],
 
             PHOTO: [MessageHandler(Filters.photo, photo),
                     CommandHandler('skip', skip_photo)],
 
             LOCATION: [MessageHandler(Filters.location, location),
-                       CommandHandler('skip', skip_location)],
-
-            BIO: [MessageHandler(Filters.text, bio)]
+                       CommandHandler('skip', skip_location)]
         },
 
         fallbacks=[CommandHandler('cancel', cancel)]
